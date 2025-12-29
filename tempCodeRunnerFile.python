@@ -1,0 +1,125 @@
+import datetime
+import uuid
+
+# --- 1. CONFIGURATION & MOCK DATABASE ---
+# In a real app, these would be SQL Tables (as discussed).
+CENTRAL_BANK_ID = "RBI_MAIN_001"
+
+# Mock Database of Wallets
+wallets = {
+    "RBI_MAIN_001": {"name": "Central Bank", "type": "AUTHORITY", "balance": 1000000},
+    "USER_STUDENT": {"name": "Rahul (Student)", "type": "CITIZEN", "balance": 0},
+    "SHOP_BOOKS":   {"name": "National Book Store", "type": "MERCHANT_EDUCATION", "balance": 0},
+    "SHOP_LIQUOR":  {"name": "City Wines", "type": "MERCHANT_LIQUOR", "balance": 0}
+}
+
+# Mock Ledger of Digital Tokens (The "Smart Money")
+# Instead of just a number, money is now an OBJECT with rules.
+ledger_tokens = []
+
+class DigitalToken:
+    def __init__(self, amount, owner_id, purpose=None, expiry_minutes=5):
+        self.token_id = str(uuid.uuid4())[:8]  # Short ID for readability
+        self.amount = amount
+        self.owner_id = owner_id
+        self.purpose = purpose  # e.g., 'EDUCATION_ONLY'
+        # Set expiry time (default 5 mins for this demo)
+        self.expires_at = datetime.datetime.now() + datetime.timedelta(minutes=expiry_minutes)
+
+    def is_expired(self):
+        return datetime.datetime.now() > self.expires_at
+
+# --- 2. CORE LOGIC: THE SMART VALIDATOR ---
+
+def validate_transfer(token, sender_id, receiver_id):
+    """
+    The 'Brain' of the system. Decides if money can move.
+    """
+    sender = wallets.get(sender_id)
+    receiver = wallets.get(receiver_id)
+
+    print(f"\n[VALIDATOR] Checking Transfer: {token.amount} INR from {sender['name']} -> {receiver['name']}")
+    
+    # Rule 1: Ownership Check
+    if token.owner_id != sender_id:
+        return False, "ERROR: Sender does not own this token."
+
+    # Rule 2: Expiry Check
+    if token.is_expired():
+        return False, "ERROR: Token has expired and is invalid."
+
+    # Rule 3: Purpose-Bound Money Logic (The Game Changer)
+    if token.purpose == "EDUCATION_ONLY":
+        # If money is for education, Receiver MUST be an Education Merchant
+        if receiver['type'] != "MERCHANT_EDUCATION":
+            return False, f"RESTRICTED: 'Education Only' funds cannot be used at {receiver['type']}."
+    
+    return True, "VALID"
+
+def execute_transfer(token_obj, receiver_id):
+    """
+    Updates the ledger if Validation passes.
+    """
+    success, message = validate_transfer(token_obj, token_obj.owner_id, receiver_id)
+    
+    if success:
+        # Atomic Update
+        token_obj.owner_id = receiver_id
+        # Update visual balances (just for display)
+        wallets[receiver_id]['balance'] += token_obj.amount
+        print(f"✅ SUCCESS: Transferred {token_obj.amount} to {wallets[receiver_id]['name']}")
+        return True
+    else:
+        print(f"❌ BLOCKED: {message}")
+        return False
+
+# --- 3. THE CLAWBACK BOT (POLICY ENFORCEMENT) ---
+
+def run_clawback_routine():
+    """
+    Runs in background. Finds expired tokens and moves them back to Central Bank.
+    """
+    print("\n--- 🕵️ RUNNING CLAWBACK BOT ---")
+    recovered_amount = 0
+    
+    for token in ledger_tokens:
+        # If token is NOT with Central Bank AND is expired
+        if token.owner_id != CENTRAL_BANK_ID and token.is_expired():
+            old_owner = wallets[token.owner_id]['name']
+            
+            # FORCE TRANSFER BACK TO CBI
+            token.owner_id = CENTRAL_BANK_ID
+            wallets[CENTRAL_BANK_ID]['balance'] += token.amount
+            
+            print(f"⚠️  EXPIRED TOKEN FOUND: {token.token_id} ({token.amount} INR)")
+            print(f"   ACTION: Clawed back from {old_owner} -> Central Bank")
+            recovered_amount += token.amount
+
+    if recovered_amount == 0:
+        print("   No expired tokens found.")
+    else:
+        print(f"   TOTAL RECOVERED: {recovered_amount} INR")
+
+# --- 4. THE SIMULATION SCENARIO ---
+
+# Step A: Issue Smart Money (Government gives Grant)
+print("--- SCENARIO START: DBT SCHEME ---")
+grant_token = DigitalToken(amount=1000, owner_id="USER_STUDENT", purpose="EDUCATION_ONLY", expiry_minutes=0.01) # Expires very fast for demo
+ledger_tokens.append(grant_token)
+wallets["USER_STUDENT"]["balance"] += 1000
+print(f"1. GOVT ISSUED: 1000 INR (Education Grant) to {wallets['USER_STUDENT']['name']}")
+
+# Step B: Student tries to buy Liquor (Should Fail)
+print("\n2. ATTEMPT: Student trying to buy Wine...")
+execute_transfer(grant_token, "SHOP_LIQUOR")
+
+# Step C: Student tries to buy Books (Should Success)
+print("\n3. ATTEMPT: Student trying to buy Books...")
+# NOTE: In a real run, this would succeed. 
+# But for this demo, let's wait a second to let it EXPIRE to test Clawback.
+import time
+print("   (Simulating hesitation... 2 seconds pass...)")
+time.sleep(2) 
+
+# Step D: Run Clawback
+run_clawback_routine()

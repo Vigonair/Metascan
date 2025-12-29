@@ -1,0 +1,21 @@
+# 1. Security (NEVER upload these)
+.env
+secrets.toml
+
+# 2. Python Junk
+__pycache__/
+*.pyc
+
+# 3. Virtual Environment (Heavy folders)
+venv/
+.venv/
+env/
+
+# 4. Data (Don't upload large PDFs to GitHub)
+data/
+uploads/
+*.pdf
+
+# 5. OS Junk
+.DS_Store
+Thumbs.db
