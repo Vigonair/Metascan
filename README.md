@@ -51,3 +51,7 @@ I implemented strict server-side session checks. The frontend now checks the use
 1. Clone the repository:
    ```bash
    git clone [https://github.com/Vigonair/Metascan.git](https://github.com/Vigonair/Metascan.git)
+
+
+
+
