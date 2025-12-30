@@ -59,6 +59,7 @@ CANDIDATE_LABELS = [
     "Quantum Physics",
     "Economics & Social Science",
     "Environmental Science"
+    "Research"
 ]
 
 def assign_category(text):
