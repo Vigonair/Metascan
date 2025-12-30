@@ -11,3 +11,4 @@ PyPDF2
 scikit-learn
 plotly
 matplotlib
+PyMuPDF
