@@ -31,7 +31,7 @@ During the integration of the Hugging Face `transformers` library, the applicati
 **The Solution:**
 Instead of downgrading the entire tech stack to an older Python version (which would sacrifice performance), I debugged the dependency chain. I reconfigured the environment to use specific, stable versions of `torch` and `transformers` that were patched for modern Python runtimes, preserving the performance benefits of the latest interpreter.
 
-### Phase 3: Security & "God Mode"
+### Phase 3: Security
 **The Challenge:**
 Implementing an Admin system introduced a major security risk. In early testing, the "Delete Paper" controls were rendered on the client-side for all users. A standard user could accidentally see the "Danger Zone" and delete the entire database.
 
